@@ -1,0 +1,6 @@
+name = Drupal File Downloader
+description = Download files from different locations.
+php = 5.4
+core = 7.x
+
+dependencies[] = xautoload (>= 7.x-4.0)
