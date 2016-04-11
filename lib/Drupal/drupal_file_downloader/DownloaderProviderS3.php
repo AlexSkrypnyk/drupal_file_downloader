@@ -1,12 +1,7 @@
 <?php
-/**
- * @file
- * Downloader provider implementation for Amazon S3.
- */
 
 namespace Drupal\drupal_file_downloader;
 
-use Aws\CloudFront\Exception\Exception;
 
 /**
  * Class DownloaderProviderS3.

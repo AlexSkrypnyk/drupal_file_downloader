@@ -1,15 +1,11 @@
 <?php
-/**
- * @file
- * Drupal file downloader.
- */
 
 namespace Drupal\drupal_file_downloader;
 
 /**
  * Class Downloader.
  *
- * @package Drupal\drupal_file_downloader
+ * Downloader provider implementation for Amazon S3.
  */
 class Downloader {
 

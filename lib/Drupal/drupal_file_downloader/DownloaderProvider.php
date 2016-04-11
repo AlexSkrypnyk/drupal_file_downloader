@@ -1,17 +1,11 @@
 <?php
-/**
- * @file
- * File downloader provider.
- *
- * Specific implementation of resource providers should implement this class.
- */
 
 namespace Drupal\drupal_file_downloader;
 
 /**
  * Class DownloaderProvider.
  *
- * @package Drupal\drupal_file_downloader
+ * Specific implementation of resource providers should implement this class.
  */
 abstract class DownloaderProvider {
   /**
