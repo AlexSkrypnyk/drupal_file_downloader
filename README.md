@@ -1,7 +1,7 @@
 # drupal\_file\_downloader
 ### Drupal module to download files from remote providers
 
-[![Circle CI](https://circleci.com/gh/alexdesignworks/drupal_file_downloader.svg?style=svg)](https://circleci.com/gh/alexdesignworks/drupal_file_downloader)
+[![Circle CI](https://circleci.com/gh/alexdesignworks/drupal_file_downloader.svg?style=shield)](https://circleci.com/gh/alexdesignworks/drupal_file_downloader)
 
 ## Why?
 When using hook_update_N() to deliver updates, it is sometimes necessary to fetch files from remote location and store them. This helper module allows to have different download providers as a source of such files.
