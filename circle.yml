@@ -1,15 +1,12 @@
 machine:
-  php:
-    version: 5.6.2
   environment:
     APPROOT: "$HOME/$CIRCLE_PROJECT_REPONAME"
     PATH: "$HOME/.composer/vendor/bin:$PATH"
 
 dependencies:
   override:
-  - cd $APPROOT && composer require alexdesignworks/dcr
-  - cd $APPROOT && bash vendor/bin/dcr install
+  - composer global require alexdesignworks/dcr
+
 test:
   override:
-  # Lint code.
-  - source ~/.profile && cd $APPROOT && dcr
+  - cd $APPROOT && dcr --no-js init && dcr
