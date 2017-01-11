@@ -39,6 +39,8 @@ abstract class DownloaderProvider {
   /**
    * Class constructor.
    *
+   * Call this constructor after parsing options in provider class constructors.
+   *
    * @param string $options
    *   Options array with the following keys:
    *   - remote_dir: Remote directory.
@@ -52,24 +54,26 @@ abstract class DownloaderProvider {
    *   - verbose: (optional) Flag to use verbose output. Defaults to TRUE.
    */
   public function __construct($options) {
-    $this->checkRequirements();
-    $this->options = $options;
     $this->localDir = $this->normaliseFilePath($options['local_dir']);
     $this->remoteDir = $options['remote_dir'];
     $this->managed = $options['managed'];
     $this->verbose = $options['verbose'];
 
     // Validate provider configuration to make sure that all values that
-    // provider expects were provided.
-    $this->providerConfigValidate();
+    // provider expects were provided and are not empty.
+    $this->providerConfigValidate($options['provider_config']);
+
+    // Check requirements.
+    $this->checkRequirements();
   }
 
   /**
    * Perform download and all related processing.
    *
-   * @return []
-   *   Array of downloaded files keyed by 'fid' for managed or real file
-   *   path for non-managed downloaded files.
+   * @return array
+   *   Array of downloaded files:
+   *   - if 'managed' was set to TRUE, keys are 'fid' and values are URI.
+   *   - if 'managed' was set to FALSE, keys are numeric and values are paths.
    */
   public function download() {
     $downloaded_files = [];
@@ -94,27 +98,44 @@ abstract class DownloaderProvider {
 
     // Output result, if required.
     if ($this->verbose) {
-      $this->verboseResult($prospective_files, $downloaded_files);
+      $this->messageSet(format_string('Downloaded @downloaded from @total@managed files to local directory @localdir.', [
+        '@downloaded' => count($downloaded_files),
+        '@total' => count($prospective_files),
+        '@localdir' => $this->localDir,
+        '@managed' => $this->managed ? ' managed' : '',
+      ]));
     }
 
     return $downloaded_files;
   }
 
   /**
+   * Get current provider name.
+   *
+   * @return string
+   *   Provider name.
+   */
+  public function getName() {
+    return strtolower(substr(get_class($this), strlen(get_parent_class($this))));
+  }
+
+  /**
    * Save downloaded managed files.
    *
-   * @param [] $downloaded_files
-   *   Array of downloaded files.
+   * @param array $downloaded_files
+   *   Array of downloaded full file paths.
    */
   protected function saveManaged(array $downloaded_files) {
-    foreach ($downloaded_files as $file_path => $file_name) {
+    $saved_files = [];
+    foreach ($downloaded_files as $file_path) {
       $local_file_loaded = file_get_contents($file_path);
       $file = file_save_data($local_file_loaded, $file_path, FILE_EXISTS_REPLACE);
 
       if ($file) {
+        $saved_files[$file->fid] = $file->uri;
         if ($this->verbose) {
-          $this->messageSet(t('Saved file %filename as managed file with fid %fid', [
-            '%filename' => $file_name,
+          $this->messageSet(t('Saved managed file %uri [fid:%fid]', [
+            '%uri' => $file->uri,
             '%fid' => $file->fid,
           ]));
         }
@@ -127,25 +148,42 @@ abstract class DownloaderProvider {
 
         if ($this->verbose) {
           $this->messageSet(t('Unable to save file %filename as managed file', [
-            '%filename' => $file_name,
+            '%filename' => $file_path,
           ]));
         }
       }
     }
 
-    return $downloaded_files;
+    return $saved_files;
   }
 
   /**
-   * Validate presence of provider configuration options.
+   * Validate that provider configuration values exist.
    *
-   * @see providerRequiredConfig()
+   * @param array $config
+   *   Array of provider config options.
+   *
+   * @throws \Exception
+   *   Throws exception when:
+   *   - required provider config items are not provided through options.
+   *   - any of expected configuration items is empty.
+   *
+   * @see providerConfigOptions()
    */
-  protected function providerConfigValidate() {
-    $required_config = $this->providerRequiredConfig();
-    foreach ($required_config as $name) {
-      if (!isset($this->options['provider_config'][$name])) {
-        throw new \Exception(t('Unable to retrieve provider configuration option %name', [
+  protected function providerConfigValidate(array $config) {
+    $config_options = $this->providerConfigOptions();
+    foreach ($config_options as $name => $required) {
+      // Validate that required provider config options were specified.
+      if ($required && empty($config[$name])) {
+        throw new \Exception(t('Unable to retrieve required provider configuration option %name', [
+          '%name' => $name,
+        ]));
+      }
+
+      // Validate that all options are not empty.
+      $name_camel = str_replace('_', '', lcfirst(ucwords($name, '_')));
+      if (empty($this->{$name_camel})) {
+        throw new \Exception(t('Provider configuration option %name is empty', [
           '%name' => $name,
         ]));
       }
@@ -153,55 +191,38 @@ abstract class DownloaderProvider {
   }
 
   /**
-   * Definition of required provider configuration options.
+   * Definition of provider configuration options.
    *
-   * @return []
-   *   Array of option names.
+   * @return array
+   *   Array of option names, keyed by config options with TRUE values
+   *   for required and FALSE for optional options.
    */
-  protected function providerRequiredConfig() {
+  protected function providerConfigOptions() {
     return [];
   }
 
   /**
    * Get provider configuration option by name.
    *
+   * This allows to dynamically set variables using Drupal variables and/or
+   * provide them through $options['provider_config'].
+   * Providing values through $options['provider_config'] takes precedence over
+   * Drupal variables.
+   *
    * @param string $name
    *   Name of the provided configuration option.
+   * @param mixed $default
+   *   Optional default value if config is not available. Defaults to NULL.
    *
    * @return mixed|null
    *   Provided option or NULL if option does not exist.
    */
-  protected function getProviderConfig($name) {
-    return isset($this->options['provider_config'][$name]) ? $this->options['provider_config'][$name] : NULL;
-  }
-
-  /**
-   * Verbose result output.
-   *
-   * @param [] $remote_files
-   *   Array of remote files that supposed to be downloaded.
-   * @param [] $downloaded_files
-   *   Array of actually downloaded files.
-   */
-  public function verboseResult(array $remote_files, array $downloaded_files) {
-    $prospective_files = [];
-    foreach ($remote_files as $file_path => $file_name) {
-      $prospective_files[ltrim($this->localDir, '/') . '/' . $file_path] = $file_name;
+  protected function getProviderConfig($options, $name, $default = NULL) {
+    if (isset($options[$name])) {
+      return $options[$name];
     }
 
-    if (count($remote_files) == count(array_intersect_key($downloaded_files, $prospective_files))) {
-      $this->messageSet(format_string('Downloaded all @prospective files to local directory @localdir.', [
-        '@prospective' => count($downloaded_files),
-        '@localdir' => $this->localDir,
-      ]));
-    }
-    else {
-      $this->messageSet(format_string('Downloaded @downloaded from @prospective files to local directory @localdir.', [
-        '@downloaded' => count($downloaded_files),
-        '@prospective' => count($remote_files),
-        '@localdir' => $this->localDir,
-      ]));
-    }
+    return variable_get('drupal_file_downloader_' . $this->getName() . '_' . $name, $default);
   }
 
   /**
@@ -289,7 +310,7 @@ abstract class DownloaderProvider {
    *
    * Only the files returned by this method will be downloaded.
    *
-   * @return []
+   * @return array
    *   Array of files in remote dir keyed by path in remote dir without the dir
    *   itself. I.e., /remote/dir/subdir/file.txt will have the key of
    *   'subdir/file.txt' if '/remote/dir' specified as remote dir.
@@ -301,12 +322,12 @@ abstract class DownloaderProvider {
   /**
    * Perform actual download.
    *
-   * @param [] $files_to_download
+   * @param array $files_to_download
    *   Array of files to download on the remote server. Array represents data
    *   returned from getList().
    *
-   * @return []
-   *   Array of downloaded files keyed by local file URI.
+   * @return array
+   *   Array of downloaded local file URIs.
    */
   abstract protected function performDownload(array $files_to_download);
 
