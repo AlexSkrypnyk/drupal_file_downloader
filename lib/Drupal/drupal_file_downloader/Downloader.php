@@ -44,15 +44,15 @@ class Downloader {
    *     compulsory. An exception will be thrown in case if some expected
    *     parameters are not provided.
    *   - managed: (optional) Flag to store downloaded files as managed. Defaults
-   *     to FALSE.
+   *     to TRUE.
    *   - verbose: (optional) Flag to use verbose output. Defaults to TRUE.
    *
-   * @return []
+   * @return array
    *   Array of downloaded files keyed by 'fid' for managed or real file
    *   path for non-managed downloaded files.
    */
   static public function download($provider, $remote_dir, $options = []) {
-    // Get validated downloader class.
+    // Get validated downloader provider class.
     $class = self::getProviderClass($provider);
 
     // Merge all options with later values overwriting the previous ones.
@@ -74,7 +74,7 @@ class Downloader {
    * each parent directory in the hierarchy may be removed if there are no more
    * files left in that directory.
    *
-   * @param [] $files
+   * @param array $files
    *   Array of files as returned from download() method.
    */
   static public function cleanup(array $files) {
@@ -108,7 +108,7 @@ class Downloader {
    * @param ...
    *   Arrays to be merged.
    *
-   * @return []
+   * @return array
    *   Array of merged options.
    */
   protected static function mergeOptions() {
@@ -116,7 +116,7 @@ class Downloader {
 
     $defaults = [
       'local_dir' => '',
-      'managed' => FALSE,
+      'managed' => TRUE,
       'verbose' => TRUE,
       'provider_config' => [],
     ];

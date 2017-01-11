@@ -1,5 +1,28 @@
 <?php
+
 /**
  * @file
  * Drupal file downloader module file.
  */
+
+/**
+ * Implements hook_libraries_info().
+ */
+function drupal_file_downloader_libraries_info() {
+  return [
+    'php-ftp-client' => [
+      'name' => 'PHP FTP client',
+      'vendor url' => 'https://github.com/Nicolab/php-ftp-client',
+      'download url' => 'https://github.com/Nicolab/php-ftp-client/tree/v1.3.0',
+      'version' => '1.3.0',
+      'path' => 'src/FtpClient',
+      'files' => [
+        'php' => [
+          'FtpClient.php',
+          'FtpException.php',
+          'FtpWrapper.php',
+        ],
+      ],
+    ],
+  ];
+}

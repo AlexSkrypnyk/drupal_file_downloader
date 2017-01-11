@@ -2,7 +2,6 @@
 
 namespace Drupal\drupal_file_downloader;
 
-
 /**
  * Class DownloaderProviderS3.
  *
@@ -20,7 +19,7 @@ class DownloaderProviderS3 extends DownloaderProvider {
   /**
    * S3 client configuration set in s3fs module.
    *
-   * @var []
+   * @var array
    */
   public $clientConfig;
 
@@ -35,10 +34,10 @@ class DownloaderProviderS3 extends DownloaderProvider {
    * {@inheritdoc}
    */
   public function __construct(array $options) {
-    parent::__construct($options);
-
     // Set bucket from provider config.
-    $this->bucket = $this->getProviderConfig('bucket');
+    $this->bucket = $this->getProviderConfig($options, 'bucket');
+
+    parent::__construct($options);
 
     // Get client config and client instance.
     $this->clientConfig = $this->initClientConfig();
@@ -70,9 +69,9 @@ class DownloaderProviderS3 extends DownloaderProvider {
   /**
    * {@inheritdoc}
    */
-  protected function providerRequiredConfig() {
+  protected function providerConfigOptions() {
     return [
-      'bucket',
+      'bucket' => TRUE,
     ];
   }
 
@@ -125,7 +124,7 @@ class DownloaderProviderS3 extends DownloaderProvider {
         }
 
         $filepath2 = $this->localDir . '/' . $filepath;
-        $downloaded_files[$filepath2] = $filename;
+        $downloaded_files[] = $filepath2;
       }
       catch (\Exception $e) {
         if ($this->verbose) {
@@ -143,7 +142,7 @@ class DownloaderProviderS3 extends DownloaderProvider {
   /**
    * Initialise client configuration.
    *
-   * @return []
+   * @return array
    *   Array of configuration retrieved from s3fs module.
    */
   protected function initClientConfig() {
