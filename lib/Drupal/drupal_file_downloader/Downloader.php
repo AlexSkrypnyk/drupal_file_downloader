@@ -140,17 +140,20 @@ class Downloader {
    *   Fully assembled and validated downloader provider class name.
    */
   protected static function getProviderClass($type) {
-    $provider_base_class = $provider_type_class = __NAMESPACE__ . '\DownloaderProvider';
-    $provider_type_class = $provider_base_class . ucfirst($type);
+    $provider_base_class = get_class() . 'Provider';
+    $provider_type_class = $provider_base_class . ucfirst(strtolower($type));
 
     if (!class_exists($provider_type_class)) {
-      throw new \Exception('Incorrect download provider type was specified.');
+      throw new \Exception(t('Incorrect download provider type was specified: class @class does not exist.', ['@class' => $provider_type_class]));
     }
 
     // Check that the class is an implementation of abstract downloader
     // provider.
     if (!in_array($provider_base_class, class_parents($provider_type_class))) {
-      throw new \Exception('Incorrect implementation of downloader provider detected.');
+      throw new \Exception(t('Incorrect implementation of downloader provider detected: class @child is not extending base @parent class.', [
+        '@child' => $provider_type_class,
+        '@parent' => $provider_base_class,
+      ]));
     }
 
     return $provider_type_class;
